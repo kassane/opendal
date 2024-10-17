@@ -54,15 +54,15 @@ jobs:
         
       - name: Build D binding
         working-directory: bindings/d
-        run: dub build
+        run: dub build --compiler=gdmd
 
       - name: Check diff
         run: git diff --exit-code
 
       - name: Check
         working-directory: bindings/d
-        run: dub lint
+        run: dub lint --compiler=gdmd
 
       - name: Run tests
         working-directory: bindings/d
-        run: dub test && cd test && dub
+        run: dub test --compiler=gdmd && cd test && dub --compiler=gdmd
