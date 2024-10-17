@@ -42,21 +42,16 @@ permissions:
 
 jobs:
   test:
-    strategy:
-      matrix:
-      # dmd: base (self-hosting) compiler (frontend & backend)
-      # ldc2/ldmd2: (dmd-frontend + LLVM backend) - recommended for MacOS ARM64
-        dlang: ["ldc-latest", "dmd-latest"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dlang-community/setup-dlang@v2
-        with:
-          compiler: ${{ matrix.dlang }}
 
       - name: Setup Rust toolchain
         uses: ./.github/actions/setup
 
+      - name: Setup D (GNU) toolchain
+        run: sudo apt install -y gdmd dub
+        
       - name: Build D binding
         working-directory: bindings/d
         run: dub build
