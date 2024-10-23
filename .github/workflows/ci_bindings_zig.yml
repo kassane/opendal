@@ -19,13 +19,13 @@ name: Bindings Zig CI
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - "*"
+    # branches:
+    #   - main
+    # tags:
+    #   - "*"
   pull_request:
-    branches:
-      - main
+    # branches:
+    #   - main
     paths:
       - "core/**"
       - "bindings/c/**"

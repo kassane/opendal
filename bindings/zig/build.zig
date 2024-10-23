@@ -58,7 +58,23 @@ pub fn build(b: *std.Build) void {
 
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
-    const unit_tests = b.addTest(.{
+    const lib_test = b.addTest(.{
+        .root_source_file = b.path("src/opendal.zig"),
+        .target = target,
+        .optimize = optimize,
+        .use_llvm = use_llvm,
+        .test_runner = b.dependency("test_runner", .{}).path("test_runner.zig"),
+    });
+    if (optimize == .Debug) {
+        lib_test.addLibraryPath(b.path("../c/target/debug"));
+    } else {
+        lib_test.addLibraryPath(b.path("../c/target/release"));
+    }
+    lib_test.linkSystemLibrary("opendal_c");
+    lib_test.linkLibCpp();
+    lib_test.root_module.addImport("opendal_c_header", opendal_binding.addModule("opendal_c_header"));
+
+    const bdd_test = b.addTest(.{
         .root_source_file = b.path("test/bdd.zig"),
         .target = target,
         .optimize = optimize,
@@ -67,17 +83,19 @@ pub fn build(b: *std.Build) void {
     });
 
     if (optimize == .Debug) {
-        unit_tests.addLibraryPath(b.path("../c/target/debug"));
+        bdd_test.addLibraryPath(b.path("../c/target/debug"));
     } else {
-        unit_tests.addLibraryPath(b.path("../c/target/release"));
+        bdd_test.addLibraryPath(b.path("../c/target/release"));
     }
-    unit_tests.linkSystemLibrary("opendal_c");
-    unit_tests.linkLibCpp();
-    unit_tests.root_module.addImport("opendal", opendal_module);
+    bdd_test.linkSystemLibrary("opendal_c");
+    bdd_test.linkLibCpp();
+    bdd_test.root_module.addImport("opendal", opendal_module);
 
     // Creates a step for running unit tests.
-    const run_unit_tests = b.addRunArtifact(unit_tests);
+    const run_lib_test = b.addRunArtifact(lib_test);
+    const run_bdd_test = b.addRunArtifact(bdd_test);
     const test_step = b.step("test", "Run OpenDAL Zig bindings tests");
     test_step.dependOn(&libopendal_c.step);
-    test_step.dependOn(&run_unit_tests.step);
+    test_step.dependOn(&run_lib_test.step);
+    test_step.dependOn(&run_bdd_test.step);
 }
