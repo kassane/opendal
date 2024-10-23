@@ -21,6 +21,21 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const use_llvm = b.option(bool, "use-llvm", "Use LLVM backend (default: true)") orelse true;
+    const use_clang = b.option(bool, "use-clang", "Use libClang codegen (default: true)") orelse true;
+
+    // Generate the Zig bindings for OpenDAL C bindings
+    const opendal_binding = b.addTranslateC(.{
+        .optimize = optimize,
+        .target = target,
+        .link_libc = true,
+        .root_source_file = b.path("../c/include/opendal.h"),
+        .use_clang = use_clang, // TODO: set 'false' use fno-llvm/fno-clang
+    });
+
+    // ZigCoro - (stackful) Coroutine for Zig (library)
+    const zigcoro = b.dependency("async", .{}).module("libcoro");
+
     // This function creates a module and adds it to the package's module set, making
     // it available to other packages which depend on this one.
     const opendal_module = b.addModule("opendal", .{
@@ -28,7 +43,9 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    opendal_module.addImport("opendal_c_header", opendal_binding.addModule("opendal_c_header"));
     opendal_module.addIncludePath(b.path("../c/include"));
+    opendal_module.addImport("libcoro", zigcoro);
 
     // Creates a step for building the dependent C bindings
     const libopendal_c_cmake = b.addSystemCommand(&[_][]const u8{ "cmake", "-S", "../c", "-B", "../c/build" });
@@ -45,9 +62,10 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("test/bdd.zig"),
         .target = target,
         .optimize = optimize,
+        .use_llvm = use_llvm,
+        .test_runner = b.dependency("test_runner", .{}).path("test_runner.zig"),
     });
 
-    unit_tests.addIncludePath(b.path("../c/include"));
     if (optimize == .Debug) {
         unit_tests.addLibraryPath(b.path("../c/target/debug"));
     } else {

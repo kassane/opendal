@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-pub const c = @cImport(@cInclude("opendal.h"));
+pub const c = @import("opendal_c_header");
 
 // Zig code get values C code
 pub const Code = enum(c.opendal_code) {
